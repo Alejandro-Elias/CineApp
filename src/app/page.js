@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Grid } from "swiper/modules";
 import "swiper/css";
@@ -16,13 +16,21 @@ export default function Home() {
   const [moviesDB, setMoviesDB] = useState([]);
   const [pagina, setPagina] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [ruta, setRuta] = useState("movie/popular?page=1");
 
-  const moviePopular = `movie/popular?page=${pagina}`;
+  useEffect(() => {
+    if (search.length > 0) {
+      setRuta(`search/movie?query=${search}&page=${pagina}`);
+    } else {
+      setRuta(`movie/popular?page=${pagina}`);
+    }
+  }, [search, pagina]);
 
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const data = await GetMovies(moviePopular);
+        const data = await GetMovies(ruta);
         setMoviesDB(data?.results || []);
         setLoading(false);
         console.log(data);
@@ -31,7 +39,22 @@ export default function Home() {
       }
     };
     fetchMovies();
-  }, [pagina]);
+  }, [ruta]);
+
+  const modal = (i) => {
+    const movie = moviesDB[i];
+    const fecha = movie.release_date.split("-").reverse().join("/");
+    Swal.fire({
+      title: movie.title + " (" + fecha + ")",
+      text: movie.overview,
+      imageUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`: "/logo.png",
+      imageWidth: 120,
+      imageAlt: "Custom image",
+      background: "rgba(11, 12, 25, 0.8)",
+      width: 800,
+      color: "rgba(228, 239, 123, 0.8)",
+    });
+  };
 
   if (loading) {
     return (
@@ -49,25 +72,20 @@ export default function Home() {
     );
   }
 
-  const modal = (i) => {
-    const movie = moviesDB[i];
-    Swal.fire({
-      title: movie.title,
-      text: movie.overview,
-      imageUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
-      imageWidth: 120,
-      imageAlt: "Custom image",
-      background: "rgba(11, 12, 25, 0.8)",
-      width: 800,
-      color: "rgba(228, 239, 123, 0.8)",
-    });
-  };
-
   return (
     <>
-      <div className="w-full flex justify-center p-10">
+      <div className="w-full flex justify-center p-10 pb-5">
         <Image src="/logo.png" alt="Logo" width={300} height={300} priority />
       </div>
+      <div className="flex justify-center mb-10">
+        <input
+          type="text"
+          placeholder="Buscar película..."
+          className="px-4 py-2 border border-gray-300 rounded"
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <div className="w-full flex flex-row justify-center">
         <div className="flex w-full justify-center mx-auto">
           <Swiper
@@ -83,17 +101,20 @@ export default function Home() {
           >
             {moviesDB.map((movie, index) => (
               <SwiperSlide
-                key={movie.id + index}
+                key={movie.id + index + movie.title}
                 className="flex flex-col items-center pb-4"
               >
                 <div className="relative">
-                  <Image
+                  <div className="flex justify-center items-center min-h-[300px]" >
+                    <Image
                     className="rounded-lg mx-auto"
-                    src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+                    src={ movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`: "/logo.png"}
                     alt={movie.title}
                     width={200}
                     height={300}
                   />
+                  </div>
+                  
                   <div className="w-full flex justify-center bg-black opacity-65 absolute top-0 text-amber-200 ">
                     <h2>{`Rating: ${movie.vote_average.toFixed(1)} / 10`}</h2>
                   </div>
